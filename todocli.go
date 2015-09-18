@@ -66,22 +66,24 @@ func addItem(c *cli.Context) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	id, err := generateID(db)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("todos"))
-		err := b.Put(id, []byte(c.Args()[0]))
+	for _, v := range c.Args() {
+		id, err := generateID(db)
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
-		return nil
-	})
-	if err != nil {
-		log.Fatal(err)
+		err = db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("todos"))
+			err := b.Put(id, []byte(v))
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("added item: todo number %s - %s\n", id, v)
 	}
-	fmt.Printf("added item: %s - %s\n", id, c.Args()[0])
 }
 
 func removeItem(c *cli.Context) {
@@ -94,15 +96,17 @@ func removeItem(c *cli.Context) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("todos"))
-		err := b.Delete([]byte(c.Args()[0]))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	fmt.Printf("removed item: %s\n", c.Args()[0])
+	for _, v := range c.Args() {
+		db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("todos"))
+			err := b.Delete([]byte(v))
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		fmt.Printf("removed item: %s\n", v)
+	}
 }
 
 func showItems(c *cli.Context) {
@@ -115,7 +119,7 @@ func showItems(c *cli.Context) {
 		b := tx.Bucket([]byte("todos"))
 		fmt.Printf("Showing items in the list:\n")
 		err := b.ForEach(func(k, v []byte) error {
-			fmt.Printf("%s: %s\n", k, v)
+			fmt.Printf("id# %s: %s\n", k, v)
 			return nil
 		})
 		if err != nil {
